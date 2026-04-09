@@ -658,7 +658,6 @@ function makeCell(y, m, d, otherMonth) {
   if (isToday)    cls += ' today';
   if (isSelected) cls += ' selected';
   if (otherMonth) cls += ' other-month';
-  if (st && !isFuture) cls += ` status-${st}`;
   cell.className = cls;
 
   cell.addEventListener('click', () => selectDate(y, m, d));
