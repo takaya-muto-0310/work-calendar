@@ -582,7 +582,12 @@ function calcHours(entry) {
 
 function fmtH(h) {
   if (h === 0) return '0';
-  return h % 1 === 0 ? String(h) : h.toFixed(1);
+  const totalMins = Math.round(h * 60);
+  const hh = Math.floor(totalMins / 60);
+  const mm = totalMins % 60;
+  if (mm === 0) return String(hh);
+  const fracMap = {15: '.25', 30: '.5', 45: '.75'};
+  return hh + (fracMap[mm] || '.' + mm);
 }
 
 function shortTime(t) {
