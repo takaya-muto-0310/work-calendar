@@ -1,0 +1,24 @@
+{
+  "name": "稼働時間カレンダー",
+  "short_name": "稼働時間",
+  "description": "任意の7日間の稼働時間を管理するカレンダーアプリ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f2eb",
+  "theme_color": "#1a1814",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

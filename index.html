@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>稼働時間カレンダー</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="稼働時間">
+<meta name="theme-color" content="#1a1814">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #f5f2eb;
+    --surface:  #fff;
+    --border:   #e2ddd5;
+    --ink:      #1a1814;
+    --muted:    #9c9488;
+    --accent:   #2d6a4f;
+    --warn:     #e07b39;
+    --warn-l:   #fdecd9;
+    --danger:   #c0392b;
+    --danger-l: #fde8e6;
+    --blue:     #2c5f8a;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+    --safe-l:   env(safe-area-inset-left, 0px);
+    --safe-r:   env(safe-area-inset-right, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overscroll-behavior: none; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    padding: calc(var(--safe-top) + 12px) calc(var(--safe-r) + 12px) calc(var(--safe-bot) + 16px) calc(var(--safe-l) + 12px);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { max-width: 780px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+
+  .header-title h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .header-title p  { display: none; }
+
+  .month-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px 8px;
+  }
+
+  .month-nav button {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 16px;
+    border-radius: 6px;
+    min-width: 34px; min-height: 34px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .month-nav button:active { background: var(--bg); color: var(--ink); }
+  .month-nav .month-label {
+    font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500;
+    color: var(--ink); min-width: 76px; text-align: center;
+  }
+
+  /* ── Info panel ── */
+  .info-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .info-panel.ok   { border-color: var(--accent); background: #f4fbf7; }
+  .info-panel.warn { border-color: var(--warn);   background: var(--warn-l); }
+  .info-panel.over { border-color: var(--danger);  background: var(--danger-l); }
+
+  .info-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .info-date-val {
+    font-size: 13px; font-weight: 700; color: var(--ink);
+    white-space: nowrap; min-width: 72px;
+  }
+
+  .info-nums {
+    display: flex; gap: 12px; flex: 1;
+  }
+
+  .info-num-item { display: flex; flex-direction: column; gap: 1px; }
+  .info-num-lbl  { font-size: 9px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .info-num-val  {
+    font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; color: var(--ink); line-height: 1;
+  }
+  .info-num-val.ok   { color: var(--accent); }
+  .info-num-val.warn { color: var(--warn); }
+  .info-num-val.over { color: var(--danger); }
+
+  .info-input-btn {
+    background: var(--ink); color: #fff; border: none;
+    border-radius: 8px; padding: 8px 12px;
+    font-size: 13px; font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  }
+  .info-input-btn:active { opacity: 0.75; }
+
+  .info-message {
+    font-size: 11px; color: var(--muted); line-height: 1.5;
+    margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border);
+  }
+  .info-message strong { color: var(--ink); }
+  .info-divider { display: none; }
+  .info-stat    { display: none; }
+
+  /* ── Controls + Legend (one row) ── */
+  .controls-legend {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .legend { display: flex; gap: 8px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 3px; font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  .mode-toggle {
+    display: flex; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  }
+  .mode-btn {
+    padding: 5px 10px; font-size: 11px; font-family: 'DM Mono', monospace;
+    cursor: pointer; border: none; background: none;
+    color: var(--muted); min-height: 30px;
+  }
+  .mode-btn.active { background: var(--ink); color: #fff; }
+  .mode-btn:active { opacity: 0.8; }
+  .limit-label { display: none; }
+  .controls-row { display: none; }
+
+  /* ── Calendar ── */
+  .calendar-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .cal-header { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--border); }
+  .cal-header-cell {
+    text-align: center; padding: 9px 2px;
+    font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.04em;
+  }
+  .cal-header-cell.sun { color: #c0392b; }
+  .cal-header-cell.sat { color: var(--blue); }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+
+  .cal-cell {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    height: 100px;
+    padding: 5px 4px 5px;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+  }
+  .cal-cell:nth-child(7n) { border-right: none; }
+  .cal-cell:active { opacity: 0.75; }
+  .cal-cell.empty  { cursor: default; background: #f9f8f5; }
+
+  .cal-cell.status-ok   { background: #f6fcf8; }
+  .cal-cell.status-warn { background: #fef7f0; }
+  .cal-cell.status-over { background: #fdf1f0; }
+
+  .cal-cell.selected { background: #e8e4dc !important; z-index: 2; }
+  .cal-cell.other-month.selected { background: #e2ddd5 !important; }
+
+  .day-num {
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500;
+    color: var(--ink); width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1;
+  }
+  .cal-cell.today .day-num {
+    background: var(--ink); color: #fff !important; border-radius: 50%;
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center; font-weight: 700;
+  }
+  .cal-cell.sun .day-num { color: #c0392b; }
+  .cal-cell.sat .day-num { color: var(--blue); }
+
+  /* Time range lines in cell */
+  .day-range {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .day-range.b1 { color: var(--ink); opacity: 0.65; }
+  .day-range.b2 { color: var(--blue); opacity: 0.8; }
+
+  .day-hours {
+    font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500;
+    color: var(--muted); margin-top: auto; line-height: 1;
+  }
+  .day-hours.zero { color: var(--border); font-weight: 300; font-size: 10px; }
+  .day-unit { display: none; }
+
+  .day-status-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; }
+  .status-ok   .day-status-bar { background: var(--accent); opacity: 0.5; }
+  .status-warn .day-status-bar { background: var(--warn); opacity: 0.6; }
+  .status-over .day-status-bar { background: var(--danger); opacity: 0.7; }
+
+  /* 前月・翌月 */
+  .cal-cell.other-month { background: #f7f6f2; }
+  .cal-cell.other-month .day-num { opacity: 0.3; }
+  .cal-cell.other-month .day-hours,
+  .cal-cell.other-month .day-unit,
+  .cal-cell.other-month .day-range { opacity: 0.4; }
+  .cal-cell.other-month.status-ok   { background: #f2f8f4; }
+  .cal-cell.other-month.status-warn { background: #faf4ec; }
+  .cal-cell.other-month.status-over { background: #faf0ef; }
+
+  /* ── Bottom bar ── */
+  .bottom-bar { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .action-btn {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; font-size: 12px;
+    color: var(--muted); font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer; min-height: 40px;
+  }
+  .action-btn:active { opacity: 0.7; }
+
+  /* ── Modal (bottom sheet) ── */
+  .modal-backdrop {
+    display: none; position: fixed; inset: 0;
+    background: rgba(26,24,20,0.5); z-index: 200;
+    align-items: flex-end; justify-content: center;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  }
+  .modal-backdrop.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px calc(var(--safe-bot) + 20px);
+    width: 100%; max-width: 480px;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.15);
+    animation: slideUp 0.22s cubic-bezier(0.34,1.3,0.64,1);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+  .modal-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.1em; margin-bottom: 3px; }
+  .modal-title { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 16px; }
+
+  /* ── Time blocks ── */
+  .time-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+
+  .block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .block-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .block-clear-btn {
+    background: none; border: none;
+    font-size: 11px; color: var(--danger);
+    cursor: pointer; padding: 2px 6px;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .block-clear-btn:active { opacity: 0.6; }
+
+  .block-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .time-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    color: var(--ink);
+    text-align: center;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.2s;
+    min-height: 48px;
+  }
+  .time-input:focus { border-color: var(--ink); }
+  .time-input::-webkit-date-and-time-value { text-align: center; }
+
+  .time-sep { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--muted); flex-shrink: 0; }
+
+  .block-hrs {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    min-width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* Total row */
+  .modal-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 6px;
+    padding: 8px 2px 14px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .modal-total .total-val {
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .modal-total .total-val.warn { color: var(--warn); }
+  .modal-total .total-val.over { color: var(--danger); }
+
+  /* Buttons */
+  .modal-btns { display: flex; gap: 8px; }
+  .btn {
+    flex: 1; padding: 14px; border-radius: 12px;
+    font-size: 14px; font-family: 'Noto Sans JP', sans-serif; font-weight: 700;
+    cursor: pointer; border: none; min-height: 50px;
+  }
+  .btn:active { opacity: 0.75; }
+  .btn-primary { background: var(--ink); color: #fff; }
+  .btn-ghost   { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .btn-clear   { background: var(--danger-l); color: var(--danger); }
+
+  /* ── Install banner ── */
+  .install-banner {
+    display: none; background: var(--ink); color: #fff;
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 16px;
+    font-size: 12px; line-height: 1.6; position: relative;
+  }
+  .install-banner.show { display: block; }
+  .install-banner strong { font-size: 13px; display: block; margin-bottom: 4px; }
+  .install-close {
+    position: absolute; top: 10px; right: 12px;
+    background: none; border: none; color: rgba(255,255,255,0.6);
+    font-size: 18px; cursor: pointer; padding: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="install-banner" id="installBanner">
+    <button class="install-close" onclick="dismissBanner()">×</button>
+    <strong>📱 ホーム画面に追加できます</strong>
+    Safari の共有ボタン（↑）→「ホーム画面に追加」でアプリのように使えます。
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">
+      <h1>稼働時間カレンダー</h1>
+      <p>7日間上限 <span id="headerLimit">50</span>h ／ 日付タップで入力</p>
+    </div>
+    <div class="month-nav">
+      <button onclick="changeMonth(-1)" aria-label="前月">&#8592;</button>
+      <span class="month-label" id="monthLabel">—</span>
+      <button onclick="changeMonth(1)" aria-label="次月">&#8594;</button>
+    </div>
+  </div>
+
+  <!-- Info panel -->
+  <div class="info-panel" id="infoPanel">
+    <div class="info-row">
+      <span class="info-date-val" id="infoDate">日付を選択</span>
+      <div class="info-nums">
+        <div class="info-num-item">
+          <span class="info-num-lbl">過去7日</span>
+          <span class="info-num-val" id="infoPast">—</span>
+        </div>
+        <div class="info-num-item">
+          <span class="info-num-lbl">未来7日</span>
+          <span class="info-num-val" id="infoFuture">—</span>
+        </div>
+      </div>
+      <button class="info-input-btn" id="infoInputBtn" onclick="openModalForSelected()" style="display:none">入力＋</button>
+    </div>
+    <div class="info-message" id="infoMessage">日付をタップして確認</div>
+  </div>
+
+  <!-- Controls + Legend -->
+  <div class="controls-legend">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#b7e4c7"></div><span id="legendOk">50h以内</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f9c89a"></div><span id="legendWarn">40〜50h</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f5a9a4"></div><span id="legendOver">超過</span></div>
+    </div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="limit50" onclick="setLimit(50)">50h</button>
+      <button class="mode-btn"        id="limit60" onclick="setLimit(60)">60h</button>
+    </div>
+  </div>
+
+  <!-- Calendar -->
+  <div class="calendar-wrap">
+    <div class="cal-header">
+      <div class="cal-header-cell sun">日</div>
+      <div class="cal-header-cell">月</div>
+      <div class="cal-header-cell">火</div>
+      <div class="cal-header-cell">水</div>
+      <div class="cal-header-cell">木</div>
+      <div class="cal-header-cell">金</div>
+      <div class="cal-header-cell sat">土</div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <!-- Bottom actions -->
+  <div class="bottom-bar">
+    <button class="action-btn" onclick="goToday()">📍 今日</button>
+    <button class="action-btn" onclick="exportCSV()">📋 CSV</button>
+    <button class="action-btn" onclick="confirmClear()">🗑 月クリア</button>
+  </div>
+
+</div>
+
+<!-- Time input modal (bottom sheet) -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="closeModal(event)">
+  <div class="modal" id="modalContent">
+    <div class="modal-handle"></div>
+    <div class="modal-date" id="modalDateLabel">—</div>
+    <div class="modal-title">稼働時間帯を入力</div>
+
+    <!-- Block 1 -->
+    <div class="time-block">
+      <div class="block-header">
+        <span class="block-label">ブロック 1</span>
+        <button class="block-clear-btn" onclick="clearBlock(1)">クリア</button>
+      </div>
+      <div class="block-row">
+        <input type="time" class="time-input" id="b1s" oninput="updateTotal()">
+        <span class="time-sep">〜</span>
+        <input type="time" class="time-input" id="b1e" oninput="updateTotal()">
+        <span class="block-hrs" id="b1h">—</span>
+      </div>
+    </div>
+
+    <!-- Block 2 -->
+    <div class="time-block">
+      <div class="block-header">
+        <span class="block-label">ブロック 2</span>
+        <button class="block-clear-btn" onclick="clearBlock(2)">クリア</button>
+      </div>
+      <div class="block-row">
+        <input type="time" class="time-input" id="b2s" oninput="updateTotal()">
+        <span class="time-sep">〜</span>
+        <input type="time" class="time-input" id="b2e" oninput="updateTotal()">
+        <span class="block-hrs" id="b2h">—</span>
+      </div>
+    </div>
+
+    <!-- Total -->
+    <div class="modal-total">
+      合計&nbsp;<span class="total-val" id="modalTotalVal">—</span>&nbsp;時間
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModalDirect()">キャンセル</button>
+      <button class="btn btn-clear" onclick="clearEntry()">全クリア</button>
+      <button class="btn btn-primary" onclick="saveEntry()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'work_cal_v2';
+let LIMIT = 50;
+let WARN  = 40;
+
+// entry format: { b1s:"09:15", b1e:"15:45", b2s:"", b2e:"" }
+// legacy format: number → treated as hours with no time range
+let data = {};
+let viewYear, viewMonth;
+let selectedDateKey = null;
+let mode = 'past';
+let editKey = null;
+
+// ── Helpers ──
+function timeDiff(s, e) {
+  if (!s || !e) return 0;
+  const [sh, sm] = s.split(':').map(Number);
+  const [eh, em] = e.split(':').map(Number);
+  const mins = (eh * 60 + em) - (sh * 60 + sm);
+  return mins > 0 ? mins / 60 : 0;
+}
+
+function calcHours(entry) {
+  if (!entry) return 0;
+  if (typeof entry === 'number') return entry;
+  return timeDiff(entry.b1s, entry.b1e) + timeDiff(entry.b2s, entry.b2e);
+}
+
+function fmtH(h) {
+  if (h === 0) return '0';
+  return h % 1 === 0 ? String(h) : h.toFixed(1);
+}
+
+function shortTime(t) {
+  // "09:15" → "9:15"
+  if (!t) return '';
+  return t.replace(/^0/, '');
+}
+
+// ── Persistence ──
+function load() {
+  try {
+    // Try v2 first, then fall back to v1
+    const s2 = localStorage.getItem(STORAGE_KEY);
+    if (s2) { data = JSON.parse(s2); return; }
+    const s1 = localStorage.getItem('work_cal_v1');
+    if (s1) {
+      const old = JSON.parse(s1);
+      // Convert old number entries (no time info, just keep hours as legacy)
+      for (const k in old) data[k] = old[k];
+    }
+  } catch(e) {}
+}
+function persist() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+// ── Date key ──
+function key(y, m, d) { return `${y}-${m+1}-${d}`; }
+function parseKey(k) { const [y,m,d] = k.split('-').map(Number); return { y, m: m-1, d }; }
+function todayKey() { const t = new Date(); return key(t.getFullYear(), t.getMonth(), t.getDate()); }
+
+// ── Rolling 7-day sum ──
+function rollingSum(cy, cm, cd, windowMode) {
+  let total = 0;
+  const center = new Date(cy, cm, cd);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(center);
+    if (windowMode === 'past') d.setDate(center.getDate() - i);
+    else                        d.setDate(center.getDate() + i);
+    total += calcHours(data[key(d.getFullYear(), d.getMonth(), d.getDate())]);
+  }
+  return total;
+}
+
+function cellStatus(y, m, d) {
+  const s = rollingSum(y, m, d, mode);
+  if (s > LIMIT) return 'over';
+  if (s >= WARN)  return 'warn';
+  if (s > 0)      return 'ok';
+  return '';
+}
+
+// ── Render ──
+function makeCell(y, m, d, otherMonth) {
+  const cell = document.createElement('div');
+  const dow = new Date(y, m, d).getDay();
+  const k   = key(y, m, d);
+  const entry = data[k];
+  const h   = calcHours(entry);
+  const st  = cellStatus(y, m, d);
+  const tKey = todayKey();
+  const isToday    = k === tKey;
+  const isSelected = k === selectedDateKey;
+  const isFuture   = new Date(y, m, d) > new Date(...todayKey().split('-').map((v,i)=>i===1?v-1:+v));
+
+  let cls = 'cal-cell';
+  if (dow === 0) cls += ' sun';
+  if (dow === 6) cls += ' sat';
+  if (isToday)    cls += ' today';
+  if (isSelected) cls += ' selected';
+  if (otherMonth) cls += ' other-month';
+  if (st && !isFuture) cls += ` status-${st}`;
+  cell.className = cls;
+
+  cell.addEventListener('click', () => selectDate(y, m, d));
+
+  let rangeHtml = '';
+  if (entry && typeof entry === 'object') {
+    if (entry.b1s && entry.b1e) rangeHtml += `<div class="day-range b1">${shortTime(entry.b1s)}</div><div class="day-range b1">${shortTime(entry.b1e)}</div>`;
+    if (entry.b2s && entry.b2e) rangeHtml += `<div class="day-range b2">${shortTime(entry.b2s)}</div><div class="day-range b2">${shortTime(entry.b2e)}</div>`;
+  }
+
+  cell.innerHTML = `
+    <div class="day-num">${d}</div>
+    ${rangeHtml}
+    <div class="day-hours ${h === 0 ? 'zero' : ''}" style="margin-top:auto">${h === 0 ? '—' : fmtH(h)}</div>
+    ${h > 0 ? '<div class="day-unit">時間</div>' : ''}
+    <div class="day-status-bar"></div>
+  `;
+  return cell;
+}
+
+function render() {
+  document.getElementById('monthLabel').textContent = `${viewYear}年 ${viewMonth+1}月`;
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  const firstDay    = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const totalCells  = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+  const trailingDays = totalCells - firstDay - daysInMonth;
+
+  // 前月の末尾
+  const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
+  const prevM = viewMonth === 0 ? 11 : viewMonth - 1;
+  const prevY = viewMonth === 0 ? viewYear - 1 : viewYear;
+  for (let i = 0; i < firstDay; i++) {
+    const d = prevMonthDays - firstDay + 1 + i;
+    grid.appendChild(makeCell(prevY, prevM, d, true));
+  }
+
+  // 当月
+  for (let d = 1; d <= daysInMonth; d++) {
+    grid.appendChild(makeCell(viewYear, viewMonth, d, false));
+  }
+
+  // 翌月の先頭
+  const nextM = viewMonth === 11 ? 0 : viewMonth + 1;
+  const nextY = viewMonth === 11 ? viewYear + 1 : viewYear;
+  for (let d = 1; d <= trailingDays; d++) {
+    grid.appendChild(makeCell(nextY, nextM, d, true));
+  }
+
+  updateInfoPanel();
+}
+
+// ── Info panel ──
+function fmt(h) { return `${fmtH(h)}h`; }
+
+function updateInfoPanel() {
+  const panel = document.getElementById('infoPanel');
+  const infoDate = document.getElementById('infoDate');
+  const infoPast = document.getElementById('infoPast');
+  const infoFuture = document.getElementById('infoFuture');
+  const infoMsg  = document.getElementById('infoMessage');
+
+  const btn = document.getElementById('infoInputBtn');
+  if (!selectedDateKey) {
+    panel.className = 'info-panel';
+    infoDate.textContent = '日付を選択';
+    infoPast.textContent = '—'; infoPast.className = 'info-num-val';
+    infoFuture.textContent = '—'; infoFuture.className = 'info-num-val';
+    infoMsg.textContent = '日付をタップして確認';
+    btn.style.display = 'none';
+    return;
+  }
+  btn.style.display = 'block';
+
+  const { y, m, d } = parseKey(selectedDateKey);
+  const pastSum   = rollingSum(y, m, d, 'past');
+  const futureSum = rollingSum(y, m, d, 'future');
+  const activeSum = mode === 'past' ? pastSum : futureSum;
+
+  const dowNames = ['日','月','火','水','木','金','土'];
+  const dow = new Date(y, m, d).getDay();
+  infoDate.textContent = `${m+1}/${d}（${dowNames[dow]}）`;
+
+  infoPast.textContent = fmt(pastSum);
+  infoPast.className = `info-num-val ${pastSum > LIMIT ? 'over' : pastSum >= WARN ? 'warn' : 'ok'}`;
+  infoFuture.textContent = fmt(futureSum);
+  infoFuture.className = `info-num-val ${futureSum > LIMIT ? 'over' : futureSum >= WARN ? 'warn' : 'ok'}`;
+
+  const panelSt = activeSum > LIMIT ? 'over' : activeSum >= WARN ? 'warn' : 'ok';
+  panel.className = `info-panel ${panelSt}`;
+
+  const remaining = Math.max(0, LIMIT - activeSum);
+  const over = activeSum - LIMIT;
+  let msg = activeSum > LIMIT
+    ? `<strong>⚠️ ${fmt(over)}超過</strong>`
+    : activeSum >= WARN
+      ? `残り <strong>${fmt(remaining)}</strong> — もう少しで上限`
+      : `残り <strong>${fmt(remaining)}</strong> 稼働できます`;
+  infoMsg.innerHTML = msg;
+}
+
+// ── Limit / Mode ──
+function setLimit(h) {
+  LIMIT = h; WARN = h === 50 ? 40 : 48;
+  document.getElementById('limit50').className = 'mode-btn' + (h === 50 ? ' active' : '');
+  document.getElementById('limit60').className = 'mode-btn' + (h === 60 ? ' active' : '');
+  const lbl = document.getElementById('limitLabel'); if (lbl) lbl.textContent = `上限 ${h}h`;
+  document.getElementById('legendOk').textContent   = `${h}h以内`;
+  document.getElementById('legendWarn').textContent = `${WARN}〜${h}h`;
+  document.getElementById('legendOver').textContent = `${h}h超過`;
+  document.getElementById('headerLimit').textContent = h;
+  render();
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('modePast').className   = 'mode-btn' + (m === 'past'   ? ' active' : '');
+  document.getElementById('modeFuture').className = 'mode-btn' + (m === 'future' ? ' active' : '');
+  render();
+}
+
+// ── Modal ──
+function updateTotal() {
+  const b1s = document.getElementById('b1s').value;
+  const b1e = document.getElementById('b1e').value;
+  const b2s = document.getElementById('b2s').value;
+  const b2e = document.getElementById('b2e').value;
+
+  const h1 = timeDiff(b1s, b1e);
+  const h2 = timeDiff(b2s, b2e);
+  const total = h1 + h2;
+
+  document.getElementById('b1h').textContent = b1s && b1e ? `${fmtH(h1)}h` : '—';
+  document.getElementById('b2h').textContent = b2s && b2e ? `${fmtH(h2)}h` : '—';
+
+  const totalEl = document.getElementById('modalTotalVal');
+  totalEl.textContent = total > 0 ? fmtH(total) : '—';
+  totalEl.className = `total-val ${total > LIMIT ? 'over' : total >= WARN ? 'warn' : ''}`;
+}
+
+function clearBlock(n) {
+  document.getElementById(`b${n}s`).value = '';
+  document.getElementById(`b${n}e`).value = '';
+  updateTotal();
+}
+
+function selectDate(y, m, d) {
+  selectedDateKey = key(y, m, d);
+  render();
+}
+
+function openModalForSelected() {
+  if (!selectedDateKey) return;
+  const { y, m, d } = parseKey(selectedDateKey);
+  openModal(y, m, d);
+}
+
+function openModal(y, m, d) {
+  editKey = key(y, m, d);
+  selectedDateKey = editKey;
+
+  const dow = new Date(y, m, d).getDay();
+  const dowNames = ['日','月','火','水','木','金','土'];
+  document.getElementById('modalDateLabel').textContent =
+    `${y}年${m+1}月${d}日（${dowNames[dow]}）`;
+
+  const entry = data[editKey];
+  if (entry && typeof entry === 'object') {
+    document.getElementById('b1s').value = entry.b1s || '';
+    document.getElementById('b1e').value = entry.b1e || '';
+    document.getElementById('b2s').value = entry.b2s || '';
+    document.getElementById('b2e').value = entry.b2e || '';
+  } else {
+    // Clear all (legacy number entries lose time detail)
+    ['b1s','b1e','b2s','b2e'].forEach(id => document.getElementById(id).value = '');
+  }
+  updateTotal();
+
+  document.getElementById('modalBackdrop').classList.add('open');
+  render();
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modalBackdrop')) closeModalDirect();
+}
+
+function closeModalDirect() {
+  document.getElementById('modalBackdrop').classList.remove('open');
+}
+
+function saveEntry() {
+  const b1s = document.getElementById('b1s').value;
+  const b1e = document.getElementById('b1e').value;
+  const b2s = document.getElementById('b2s').value;
+  const b2e = document.getElementById('b2e').value;
+
+  const hasAny = (b1s && b1e) || (b2s && b2e);
+  if (hasAny) {
+    data[editKey] = { b1s, b1e, b2s, b2e };
+  } else {
+    delete data[editKey];
+  }
+  persist();
+  document.activeElement.blur();
+  closeModalDirect();
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function clearEntry() {
+  delete data[editKey];
+  persist();
+  closeModalDirect();
+  render();
+}
+
+// ── Navigation ──
+function changeMonth(delta) {
+  viewMonth += delta;
+  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
+  render();
+}
+
+function goToday() {
+  const t = new Date();
+  viewYear = t.getFullYear(); viewMonth = t.getMonth();
+  selectedDateKey = todayKey();
+  render();
+}
+
+// ── Export ──
+function exportCSV() {
+  const days = new Date(viewYear, viewMonth+1, 0).getDate();
+  let rows = ['日付,ブロック1開始,ブロック1終了,ブロック2開始,ブロック2終了,稼働時間(h),過去7日合計(h),未来7日合計(h)'];
+  for (let d = 1; d <= days; d++) {
+    const k = key(viewYear, viewMonth, d);
+    const entry = data[k];
+    const h = calcHours(entry);
+    const p = rollingSum(viewYear, viewMonth, d, 'past');
+    const f = rollingSum(viewYear, viewMonth, d, 'future');
+    const b1s = (entry && entry.b1s) || '';
+    const b1e = (entry && entry.b1e) || '';
+    const b2s = (entry && entry.b2s) || '';
+    const b2e = (entry && entry.b2e) || '';
+    rows.push(`${viewYear}/${viewMonth+1}/${d},${b1s},${b1e},${b2s},${b2e},${fmtH(h)},${fmtH(p)},${fmtH(f)}`);
+  }
+  const text = rows.join('\n');
+  navigator.clipboard.writeText(text)
+    .then(() => alert('CSVをクリップボードにコピーしました！'))
+    .catch(() => prompt('コピーしてください:', text));
+}
+
+function confirmClear() {
+  if (confirm(`${viewYear}年${viewMonth+1}月のデータをすべて削除しますか？`)) {
+    const days = new Date(viewYear, viewMonth+1, 0).getDate();
+    for (let d = 1; d <= days; d++) delete data[key(viewYear, viewMonth, d)];
+    persist();
+    render();
+  }
+}
+
+// ── Install banner ──
+function dismissBanner() {
+  document.getElementById('installBanner').classList.remove('show');
+  localStorage.setItem('install_dismissed', '1');
+}
+
+function checkInstallBanner() {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true;
+  const dismissed = localStorage.getItem('install_dismissed');
+  if (isIOS && !isStandalone && !dismissed) document.getElementById('installBanner').classList.add('show');
+}
+
+// ── Service Worker ──
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+
+// ── Swipe to change month ──
+(function() {
+  let startX = 0, startY = 0;
+  document.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (document.getElementById('modalBackdrop').classList.contains('open')) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) changeMonth(dx < 0 ? 1 : -1);
+  }, { passive: true });
+})();
+
+// ── Init ──
+load();
+const now = new Date();
+viewYear = now.getFullYear(); viewMonth = now.getMonth();
+selectedDateKey = todayKey();
+checkInstallBanner();
+render();
+</script>
+</body>
+</html>
