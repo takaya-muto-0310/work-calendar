@@ -315,12 +315,18 @@
     gap: 8px;
   }
 
-  .time-input {
+  .time-sel-group {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .time-sel {
     flex: 1;
     background: var(--surface);
     border: 1.5px solid var(--border);
     border-radius: 8px;
-    padding: 10px 8px;
+    padding: 10px 4px;
     font-family: 'DM Mono', monospace;
     font-size: 18px;
     color: var(--ink);
@@ -331,8 +337,8 @@
     transition: border-color 0.2s;
     min-height: 48px;
   }
-  .time-input:focus { border-color: var(--ink); }
-  .time-input::-webkit-date-and-time-value { text-align: center; }
+  .time-sel:focus { border-color: var(--ink); }
+  .time-colon { font-family: 'DM Mono', monospace; font-size: 18px; color: var(--ink); flex-shrink: 0; }
 
   .time-sep { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--muted); flex-shrink: 0; }
 
@@ -483,9 +489,17 @@
         <button class="block-clear-btn" onclick="clearBlock(1)">クリア</button>
       </div>
       <div class="block-row">
-        <input type="time" class="time-input" id="b1s" step="900" oninput="updateTotal()">
+        <div class="time-sel-group">
+          <select class="time-sel" id="b1s_h" onchange="updateTotal()"><option value="">—</option><option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option></select>
+          <span class="time-colon">:</span>
+          <select class="time-sel" id="b1s_m" onchange="updateTotal()"><option value="">—</option><option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option></select>
+        </div>
         <span class="time-sep">〜</span>
-        <input type="time" class="time-input" id="b1e" step="900" oninput="updateTotal()">
+        <div class="time-sel-group">
+          <select class="time-sel" id="b1e_h" onchange="updateTotal()"><option value="">—</option><option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option></select>
+          <span class="time-colon">:</span>
+          <select class="time-sel" id="b1e_m" onchange="updateTotal()"><option value="">—</option><option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option></select>
+        </div>
         <span class="block-hrs" id="b1h">—</span>
       </div>
     </div>
@@ -497,9 +511,17 @@
         <button class="block-clear-btn" onclick="clearBlock(2)">クリア</button>
       </div>
       <div class="block-row">
-        <input type="time" class="time-input" id="b2s" step="900" oninput="updateTotal()">
+        <div class="time-sel-group">
+          <select class="time-sel" id="b2s_h" onchange="updateTotal()"><option value="">—</option><option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option></select>
+          <span class="time-colon">:</span>
+          <select class="time-sel" id="b2s_m" onchange="updateTotal()"><option value="">—</option><option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option></select>
+        </div>
         <span class="time-sep">〜</span>
-        <input type="time" class="time-input" id="b2e" step="900" oninput="updateTotal()">
+        <div class="time-sel-group">
+          <select class="time-sel" id="b2e_h" onchange="updateTotal()"><option value="">—</option><option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option></select>
+          <span class="time-colon">:</span>
+          <select class="time-sel" id="b2e_m" onchange="updateTotal()"><option value="">—</option><option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option></select>
+        </div>
         <span class="block-hrs" id="b2h">—</span>
       </div>
     </div>
@@ -521,6 +543,19 @@
 const STORAGE_KEY = 'work_cal_v2';
 let LIMIT = 50;
 let WARN  = 40;
+
+// Helper: read HH:MM from split selects
+function getTimeVal(id) {
+  const h = document.getElementById(id + '_h').value;
+  const m = document.getElementById(id + '_m').value;
+  return (h !== '' && m !== '') ? h + ':' + m : '';
+}
+// Helper: set split selects from HH:MM string
+function setTimeVal(id, val) {
+  const parts = val ? val.split(':') : [];
+  document.getElementById(id + '_h').value = parts[0] || '';
+  document.getElementById(id + '_m').value = parts[1] || '';
+}
 
 // entry format: { b1s:"09:15", b1e:"15:45", b2s:"", b2e:"" }
 // legacy format: number → treated as hours with no time range
@@ -743,10 +778,10 @@ function setMode(m) {
 
 // ── Modal ──
 function updateTotal() {
-  const b1s = document.getElementById('b1s').value;
-  const b1e = document.getElementById('b1e').value;
-  const b2s = document.getElementById('b2s').value;
-  const b2e = document.getElementById('b2e').value;
+  const b1s = getTimeVal('b1s');
+  const b1e = getTimeVal('b1e');
+  const b2s = getTimeVal('b2s');
+  const b2e = getTimeVal('b2e');
 
   const h1 = timeDiff(b1s, b1e);
   const h2 = timeDiff(b2s, b2e);
@@ -761,8 +796,8 @@ function updateTotal() {
 }
 
 function clearBlock(n) {
-  document.getElementById(`b${n}s`).value = '';
-  document.getElementById(`b${n}e`).value = '';
+  setTimeVal(`b${n}s`, '');
+  setTimeVal(`b${n}e`, '');
   updateTotal();
 }
 
@@ -788,13 +823,13 @@ function openModal(y, m, d) {
 
   const entry = data[editKey];
   if (entry && typeof entry === 'object') {
-    document.getElementById('b1s').value = entry.b1s || '';
-    document.getElementById('b1e').value = entry.b1e || '';
-    document.getElementById('b2s').value = entry.b2s || '';
-    document.getElementById('b2e').value = entry.b2e || '';
+    setTimeVal('b1s', entry.b1s || '');
+    setTimeVal('b1e', entry.b1e || '');
+    setTimeVal('b2s', entry.b2s || '');
+    setTimeVal('b2e', entry.b2e || '');
   } else {
     // Clear all (legacy number entries lose time detail)
-    ['b1s','b1e','b2s','b2e'].forEach(id => document.getElementById(id).value = '');
+    ['b1s','b1e','b2s','b2e'].forEach(id => setTimeVal(id, ''));
   }
   updateTotal();
 
@@ -811,10 +846,10 @@ function closeModalDirect() {
 }
 
 function saveEntry() {
-  const b1s = document.getElementById('b1s').value;
-  const b1e = document.getElementById('b1e').value;
-  const b2s = document.getElementById('b2s').value;
-  const b2e = document.getElementById('b2e').value;
+  const b1s = getTimeVal('b1s');
+  const b1e = getTimeVal('b1e');
+  const b2s = getTimeVal('b2s');
+  const b2e = getTimeVal('b2e');
 
   const hasAny = (b1s && b1e) || (b2s && b2e);
   if (hasAny) {
