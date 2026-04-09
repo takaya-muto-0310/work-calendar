@@ -738,7 +738,7 @@ function updateInfoPanel() {
   const { y, m, d } = parseKey(selectedDateKey);
   const pastSum   = rollingSum(y, m, d, 'past');
   const futureSum = rollingSum(y, m, d, 'future');
-  const activeSum = mode === 'past' ? pastSum : futureSum;
+  const dangerSum = Math.max(pastSum, futureSum);
 
   const dowNames = ['日','月','火','水','木','金','土'];
   const dow = new Date(y, m, d).getDay();
@@ -749,16 +749,16 @@ function updateInfoPanel() {
   infoFuture.textContent = fmt(futureSum);
   infoFuture.className = `info-num-val ${futureSum > LIMIT ? 'over' : futureSum >= WARN ? 'warn' : 'ok'}`;
 
-  const panelSt = activeSum > LIMIT ? 'over' : activeSum >= WARN ? 'warn' : 'ok';
+  const panelSt = dangerSum > LIMIT ? 'over' : dangerSum >= WARN ? 'warn' : 'ok';
   panel.className = `info-panel ${panelSt}`;
 
-  const remaining = Math.max(0, LIMIT - activeSum);
-  const over = activeSum - LIMIT;
-  let msg = activeSum > LIMIT
+  const remaining = Math.max(0, LIMIT - dangerSum);
+  const over = dangerSum - LIMIT;
+  let msg = dangerSum > LIMIT
     ? `<strong>⚠️ ${fmt(over)}超過</strong>`
-    : activeSum >= WARN
+    : dangerSum >= WARN
       ? `残り <strong>${fmt(remaining)}</strong> — もう少しで上限`
-      : `残り <strong>${fmt(remaining)}</strong> 稼働できます`;
+      : `残り <strong>${fmt(remaining)}</strong> オファー取得可能`;
   infoMsg.innerHTML = msg;
 }
 
