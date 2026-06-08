@@ -571,7 +571,10 @@ function timeDiff(s, e) {
   if (!s || !e) return 0;
   const [sh, sm] = s.split(':').map(Number);
   const [eh, em] = e.split(':').map(Number);
-  const mins = (eh * 60 + em) - (sh * 60 + sm);
+  let endMins = eh * 60 + em;
+  const startMins = sh * 60 + sm;
+  if (endMins < startMins) endMins += 1440; // 深夜0時をまたぐ場合
+  const mins = endMins - startMins;
   return mins > 0 ? mins / 60 : 0;
 }
 
