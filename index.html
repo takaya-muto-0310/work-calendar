@@ -471,7 +471,10 @@
   <div class="bottom-bar">
     <button class="action-btn" onclick="goToday()">📍 今日</button>
     <button class="action-btn" onclick="exportCSV()">📋 CSV</button>
+    <button class="action-btn" onclick="backupData()">💾 バックアップ</button>
+    <button class="action-btn" onclick="document.getElementById('restoreFile').click()">📥 復元</button>
     <button class="action-btn" onclick="confirmClear()">🗑 月クリア</button>
+    <input type="file" id="restoreFile" accept="application/json,.json" style="display:none" onchange="restoreData(event)">
   </div>
 
 </div>
@@ -914,6 +917,54 @@ function exportCSV() {
   navigator.clipboard.writeText(text)
     .then(() => alert('CSVをクリップボードにコピーしました！'))
     .catch(() => prompt('コピーしてください:', text));
+}
+
+// ── Backup / Restore（全データ） ──
+function backupData() {
+  const payload = JSON.stringify({ app: 'work-calendar', version: 2, exportedAt: new Date().toISOString(), data }, null, 2);
+  const t = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const fname = `work-calendar-backup-${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}.json`;
+  try {
+    const blob = new Blob([payload], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    alert('バックアップファイルを保存しました。\n「ファイル」アプリに保存されます。大切に保管してください。');
+  } catch (e) {
+    // 端末がダウンロードに対応していない場合はクリップボードへ
+    navigator.clipboard.writeText(payload)
+      .then(() => alert('バックアップをクリップボードにコピーしました。\nメモ帳などに貼り付けて保管してください。'))
+      .catch(() => prompt('このテキストをコピーして保管してください:', payload));
+  }
+}
+
+function restoreData(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function() {
+    try {
+      const parsed = JSON.parse(reader.result);
+      let incoming = null;
+      if (parsed && parsed.data && typeof parsed.data === 'object') incoming = parsed.data;
+      else if (parsed && typeof parsed === 'object') incoming = parsed;
+      if (!incoming) { alert('バックアップファイルの形式が正しくありません。'); return; }
+      const count = Object.keys(incoming).length;
+      if (!confirm(`バックアップから ${count} 日分のデータを復元します。\n今このアプリにあるデータは上書きされます。よろしいですか？`)) return;
+      data = incoming;
+      persist();
+      render();
+      alert('データを復元しました！');
+    } catch (e) {
+      alert('ファイルを読み込めませんでした。正しいバックアップファイルか確認してください。');
+    } finally {
+      event.target.value = '';
+    }
+  };
+  reader.readAsText(file);
 }
 
 function confirmClear() {
