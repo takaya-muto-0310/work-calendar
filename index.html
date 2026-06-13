@@ -242,11 +242,11 @@
   .cal-cell.other-month.status-over { background: #faf0ef; }
 
   /* ── Bottom bar ── */
-  .bottom-bar { display: flex; gap: 4px; margin-top: 14px; flex-wrap: nowrap; }
+  .bottom-bar { display: flex; gap: 6px; margin-top: 14px; flex-wrap: nowrap; }
   .action-btn {
     flex: 1; min-width: 0;
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 10px 2px; font-size: 10px;
+    border-radius: 8px; padding: 10px 2px; font-size: 11px;
     color: var(--muted); font-family: 'Noto Sans JP', sans-serif;
     cursor: pointer; min-height: 40px;
     white-space: nowrap; text-align: center; letter-spacing: -0.02em;
@@ -471,11 +471,10 @@
 
   <!-- Bottom actions -->
   <div class="bottom-bar">
-    <button class="action-btn" onclick="goToday()">今日</button>
-    <button class="action-btn" onclick="exportCSV()">CSV</button>
-    <button class="action-btn" onclick="backupData()">バックアップ</button>
-    <button class="action-btn" onclick="document.getElementById('restoreFile').click()">復元</button>
-    <button class="action-btn" onclick="confirmClear()">月クリア</button>
+    <button class="action-btn" onclick="goToday()">📍今日</button>
+    <button class="action-btn" onclick="backupData()">💾バックアップ</button>
+    <button class="action-btn" onclick="document.getElementById('restoreFile').click()">📥復元</button>
+    <button class="action-btn" onclick="confirmClear()">🗑月クリア</button>
     <input type="file" id="restoreFile" accept="application/json,.json" style="display:none" onchange="restoreData(event)">
   </div>
 
@@ -898,28 +897,6 @@ function goToday() {
   viewYear = t.getFullYear(); viewMonth = t.getMonth();
   selectedDateKey = todayKey();
   render();
-}
-
-// ── Export ──
-function exportCSV() {
-  const days = new Date(viewYear, viewMonth+1, 0).getDate();
-  let rows = ['日付,ブロック1開始,ブロック1終了,ブロック2開始,ブロック2終了,稼働時間(h),過去7日合計(h),未来7日合計(h)'];
-  for (let d = 1; d <= days; d++) {
-    const k = key(viewYear, viewMonth, d);
-    const entry = data[k];
-    const h = calcHours(entry);
-    const p = rollingSum(viewYear, viewMonth, d, 'past');
-    const f = rollingSum(viewYear, viewMonth, d, 'future');
-    const b1s = (entry && entry.b1s) || '';
-    const b1e = (entry && entry.b1e) || '';
-    const b2s = (entry && entry.b2s) || '';
-    const b2e = (entry && entry.b2e) || '';
-    rows.push(`${viewYear}/${viewMonth+1}/${d},${b1s},${b1e},${b2s},${b2e},${fmtH(h)},${fmtH(p)},${fmtH(f)}`);
-  }
-  const text = rows.join('\n');
-  navigator.clipboard.writeText(text)
-    .then(() => alert('CSVをクリップボードにコピーしました！'))
-    .catch(() => prompt('コピーしてください:', text));
 }
 
 // ── Backup / Restore（全データ） ──
