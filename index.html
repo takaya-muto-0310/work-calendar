@@ -772,6 +772,7 @@ function updateInfoPanel() {
 // ── Limit / Mode ──
 function setLimit(h) {
   LIMIT = h; WARN = h === 50 ? 40 : 48;
+  localStorage.setItem('work_cal_limit', String(h));
   document.getElementById('limit50').className = 'mode-btn' + (h === 50 ? ' active' : '');
   document.getElementById('limit60').className = 'mode-btn' + (h === 60 ? ' active' : '');
   const lbl = document.getElementById('limitLabel'); if (lbl) lbl.textContent = `上限 ${h}h`;
@@ -1012,7 +1013,8 @@ const now = new Date();
 viewYear = now.getFullYear(); viewMonth = now.getMonth();
 selectedDateKey = todayKey();
 checkInstallBanner();
-render();
+const savedLimit = Number(localStorage.getItem('work_cal_limit'));
+setLimit(savedLimit === 60 ? 60 : 50); // 前回選んだ上限(50/60h)を復元。render もここで実行される
 </script>
 </body>
 </html>
